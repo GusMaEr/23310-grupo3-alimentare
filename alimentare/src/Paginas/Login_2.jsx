@@ -1,79 +1,114 @@
+import { auth, googleProvider } from "../Componentes/firebase/FirebaseConfig";
+import { signInWithEmailAndPassword, getAuth, signInWithPopup } from "firebase/auth";
+import { Button } from "react-bootstrap";
 import React, { useState } from "react";
-//import ReactDOM from "react-dom";
 import '../Style/Login_2.css';
 
 function App() {
-  // React States
-  const [errorMessages, setErrorMessages] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
 
-  // User Login info
-  const database = [
-    {
-      username: "user1",
-      password: "pass1"
-    },
-    {
-      username: "user2",
-      password: "pass2"
-    }
-  ];
+  let usuario = auth?.currentUser?.email;
+  console.log("Usuario: " + usuario);
 
-  const errors = {
-    uname: "invalid username",
-    pass: "invalid password"
+  const signIn = async () => {
+    const auth = getAuth();
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        console.log(user);
+        setMessage("Bienvenido " + userCredential.user.email ); 
+        limpiarFormulario();
+        window.location='/Recetas';
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        console.log(errorCode)
+        switch (errorCode) {
+          case "auth/wrong-password":
+            setMessage("La contraseña es incorrecta");
+            break;
+          case "auth/user-not-found":
+            setMessage("El usuario no ha sido encontrado");
+            break;
+          case "auth/invalid-email":
+            setMessage("El correo electrónico es inválido");
+            break;
+          case "auth/missing-password":
+            setMessage("La contraseña no ha sido proporcionada");
+            break;
+          default:
+            setMessage("");
+            break;
+        }     
+        limpiarFormulario();   
+        window.location='/Recetas';
+      });
   };
 
-  const handleSubmit = (event) => {
-    //Prevent page reload
-    event.preventDefault();
+  function limpiarFormulario() {   
+    
+    document.getElementById('email').value = ''; 
+    document.getElementById('pass').value = ''; 
+  }
 
-    var { uname, pass } = document.forms[0];
-
-    // Find user login info
-    const userData = database.find((user) => user.username === uname.value);
-
-    // Compare user info
-    if (userData) {
-      if (userData.password !== pass.value) {
-        // Invalid password
-        setErrorMessages({ name: "pass", message: errors.pass });
-      } else {
-        setIsSubmitted(true);
-      }
-    } else {
-      // Username not found
-      setErrorMessages({ name: "uname", message: errors.uname });
+  const signInWithGoogle = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      limpiarFormulario();
+      setMessage("Bienvenido");
+      window.location='/Recetas';
+    } catch (error) {
+      console.log(error);
+      limpiarFormulario();
+      setMessage("Error al iniciar sesión con Google");
     }
   };
 
-  // Generate JSX code for error message
-  const renderErrorMessage = (name) =>
-    name === errorMessages.name && (
-      <div className="error">{errorMessages.message}</div>
-    );
-
-  // JSX code for login form
   const renderForm = (
-    <div className="form">
-      <form onSubmit={handleSubmit}>
+    <div id="formularioLogin" className="form">
+      <form>
         <div className="input-container">
-          <label>Usuario </label>
-          <input type="text" name="uname" required />
-          {renderErrorMessage("uname")}
+          <label>Correo electronico </label>
+          <input
+            type="email"
+            placeholder="Email"
+            onChange={(e) => setEmail(e.target.value)}
+            id="email"
+            required
+          />
         </div>
         <div className="input-container">
           <label>Password </label>
-          <input type="password" name="pass" required />
-          {renderErrorMessage("pass")}
+          <input
+            type="password"
+            placeholder="Password"
+            onChange={(e) => setPassword(e.target.value)}
+            id="pass"
+            required
+          />
         </div>
         <div className="button-container">
-          <input type="submit" />
+          <Button variant="success" onClick={signIn}>Enviar</Button>
         </div>
+        {/* Muestra el mensaje que devuelve la base de datos */}
+        <p>{message}</p>
         <br></br>
-        <p><a class="text-muted link-info" href="#!" >¿Olvidaste tu password?</a>
+        <p>
+          <button onClick={signInWithGoogle}>Iniciar sesión con Google</button>
         </p>
-        <p>¿Todavía no tenés una cuenta? <a href='/Registro' class="link-info">Registrate</a>
+
+        <p>
+          <a className="text-muted link-info" href="#!">
+            ¿Olvidaste tu password?
+          </a>
+        </p>
+        <p>
+          ¿Todavía no tenés una cuenta?
+          <a href="/Registro" className="link-info">
+            Registrate
+          </a>
         </p>
       </form>
     </div>
@@ -83,7 +118,7 @@ function App() {
     <div className="app">
       <div className="login-form">
         <div className="title">Login</div>
-        {isSubmitted ? <div>El usuario ha iniciado sesión con éxito</div> : renderForm}
+        {renderForm}
       </div>
     </div>
   );
